@@ -1,0 +1,1 @@
+# IF3170_G48_NaturalStupidity
