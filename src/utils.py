@@ -252,3 +252,6 @@ class TruckState:
                     neighbors.append(state)
 
         return neighbors
+
+    def count_value(self):
+        return sum(pack.value for pack in self.packs)
