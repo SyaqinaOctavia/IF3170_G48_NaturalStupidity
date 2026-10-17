@@ -182,8 +182,14 @@ class TruckState:
         # axis 0 = x, 1 = y, 2 = z
         if axis < 0 or axis > 2:
             return None
-        inside = [p for p in self.packs if p.isInside]
         pack = self._find(packid)
+        if not pack.isInside():
+            return None
+        dim = pack.dim
+        if (axis == 0 and dim.length == dim.height) or \
+            (axis == 1 and dim.width == dim.length) or \
+            (axis == 2 and dim.width == dim.height):
+            return None
         old = pack.copy()
         if axis == 0:
             pack.dim.rotate_x()
@@ -209,3 +215,40 @@ class TruckState:
         finally:
             pack1.pos, pack2.pos = olds[0].pos, olds[1].pos
             pack1.isInside, pack2.isInside = olds[0].isInside, olds[1].isInside
+
+    def drop_height(self, pack, x, z):
+        y = 0
+        for i_pack in self.packs:
+            if (i_pack.isInside and i_pack.id != pack.id and
+                x < i_pack.pos.x + i_pack.dim.width and x + pack.dim.width > i_pack.pos.x and
+                z < i_pack.pos.z + i_pack.dim.length and z + pack.dim.length > i_pack.pos.z):
+                y = max(y, i_pack.pos.y + i_pack.dim.height)
+    def _move_candidates(self, pack):
+        w, h, l = pack.dim.width, pack.dim.height, pack.dim.length
+        for x in range(self.dim.width - w + 1):
+            for z in range(self.dim.length - l + 1):
+                y = self.drop_height(pack, x, z)
+                if y + h <= self.dim.height:
+                    yield Position(x, y, z)
+    def get_neighbors(self):
+        neighbors = []
+        for pack in self.packs:
+
+            for pos in self._move_candidates(pack):
+                state = self.move_pack(pack.id, pos)
+                if state is not None:
+                    neighbors.append(state)
+            
+            if pack.isInside:
+                for axis in range(3):
+                    state = self.rotate_pack(pack.id, axis)
+                    if state is not None:
+                        neighbors.append(state)
+
+        for i in range(len(self.packs)):
+            for j in range(i+1, len(self.packs)):
+                state = self.swap_pack(self.packs[i].id, self.packs[j].id)
+                if state is not None:
+                    neighbors.append(state)
+
+        return neighbors

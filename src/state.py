@@ -15,7 +15,6 @@ def random_state(truck_dim, cap, n_packs, max_attempts=50, fragile_prob=0.2, see
     rng = random.Random(seed)
     W, H, L = truck_dim.width, truck_dim.height, truck_dim.length
 
-    # 1. random packages, all outside
     packs = []
     for i in range(n_packs):
         dim = Dimension(rng.randint(1, max(1, W // 2)),
@@ -31,7 +30,6 @@ def random_state(truck_dim, cap, n_packs, max_attempts=50, fragile_prob=0.2, see
         ))
     state = TruckState(truck_dim, cap, packs)
 
-    # 2. try to load them in random order
     order = list(range(n_packs))
     rng.shuffle(order)
     for pid in order:
@@ -54,6 +52,7 @@ def random_state(truck_dim, cap, n_packs, max_attempts=50, fragile_prob=0.2, see
     return state
 
 # randomize packs inside truck
+# ASUMSI truk kosong
 def randomize_pack(truck, max_attempts=50, seed=None):
     rng = random.Random(seed)
     W, H, L = truck.dim.width, truck.dim.height, truck.dim.length
