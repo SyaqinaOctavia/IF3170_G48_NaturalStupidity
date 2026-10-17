@@ -1,3 +1,4 @@
+import random
 class Position:
     def __init__(self, x, y, z):
         self.x = x
@@ -253,6 +254,43 @@ class TruckState:
                     neighbors.append(state)
 
         return neighbors
+    
+    def get_random_neighbor(self,max_attempts = 25) -> (TruckState|None):
+        if not self.packs:
+            return None
+        
+        for _ in range(max_attempts):
+            selected_function = random.randint(1, 3)
+            pack = random.choice(self.packs)
+            
+            match selected_function:
+                case 1:  # move_pack
+                        w, h, l = pack.dim.width, pack.dim.height, pack.dim.length
+                        if w <= self.dim.width and h <= self.dim.height and l <= self.dim.length:
+                            for _ in range(10):
+                                x = random.randint(0, self.dim.width - w)
+                                z = random.randint(0, self.dim.length - l)
+                                y = self.drop_height(pack, x, z)
+                                if y + h <= self.dim.height:
+                                    state = self.move_pack(pack.id, Position(x, y, z))
+                                    if state is not None:
+                                        return state
+                case 2:  # rotate_pack
+                        axes = [0, 1, 2]
+                        random.shuffle(axes)
+                        for axis in axes:
+                            state = self.rotate_pack(pack.id, axis)
+                            if state is not None:
+                                return state
+                case 3:  # swap_pack
+                        others = [p.id for p in self.packs if p.id != pack.id]
+                        random.shuffle(others)
+                        for other_id in others:
+                            state = self.swap_pack(pack.id, other_id)
+                            if state is not None:
+                                return state
+        return None
+
 
     def count_value(self):
         # only filter with the isInside boolean since the other helper functions
