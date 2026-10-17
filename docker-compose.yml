@@ -1,0 +1,13 @@
+services:
+  truck-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: truck-ai
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app
+    environment:
+      - STREAMLIT_THEME_BASE=light
+    restart: unless-stopped

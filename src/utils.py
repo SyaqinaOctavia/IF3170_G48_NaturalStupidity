@@ -255,7 +255,7 @@ class TruckState:
 
         return neighbors
     
-    def get_random_neighbor(self,max_attempts = 25) -> (TruckState|None):
+    def get_random_neighbor(self,max_attempts = 25):
         """
         Pake ini kalo mau dapat 1 random neighbor secara cepat ges. Kalo pake
         random.choice(get_neighbors()) lama banget cuz get_neighbors itu generate 
