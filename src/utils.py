@@ -177,13 +177,13 @@ class TruckState:
             return self.copy() if self.validate_change([pack], [old]) else None
         finally:
             pack.pos = old.pos
-            pack.isInside = old.inside
+            pack.isInside = old.isInside
     def rotate_pack(self, packid, axis=0):
         # axis 0 = x, 1 = y, 2 = z
         if axis < 0 or axis > 2:
             return None
         pack = self._find(packid)
-        if not pack.isInside():
+        if not pack.isInside:
             return None
         dim = pack.dim
         if (axis == 0 and dim.length == dim.height) or \
@@ -223,6 +223,7 @@ class TruckState:
                 x < i_pack.pos.x + i_pack.dim.width and x + pack.dim.width > i_pack.pos.x and
                 z < i_pack.pos.z + i_pack.dim.length and z + pack.dim.length > i_pack.pos.z):
                 y = max(y, i_pack.pos.y + i_pack.dim.height)
+        return y
     def _move_candidates(self, pack):
         w, h, l = pack.dim.width, pack.dim.height, pack.dim.length
         for x in range(self.dim.width - w + 1):
@@ -254,4 +255,6 @@ class TruckState:
         return neighbors
 
     def count_value(self):
-        return sum(pack.value for pack in self.packs)
+        # only filter with the isInside boolean since the other helper functions
+        # will not flag isInside as true without it being valid first
+        return sum(pack.value for pack in self.packs if pack.isInside)

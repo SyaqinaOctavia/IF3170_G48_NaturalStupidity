@@ -56,8 +56,9 @@ def random_state(truck_dim, cap, n_packs, max_attempts=50, fragile_prob=0.2, see
 def randomize_pack(truck, max_attempts=50, seed=None):
     rng = random.Random(seed)
     W, H, L = truck.dim.width, truck.dim.height, truck.dim.length
+    state = truck.copy()
 
-    order = list(range(truck.packs))
+    order = list(range(len(truck.packs)))
     rng.shuffle(order)
     for pid in order:
         pack = next(p for p in state.packs if p.id == pid)
