@@ -256,13 +256,18 @@ class TruckState:
         return neighbors
     
     def get_random_neighbor(self,max_attempts = 25) -> (TruckState|None):
+        """
+        Pake ini kalo mau dapat 1 random neighbor secara cepat ges. Kalo pake
+        random.choice(get_neighbors()) lama banget cuz get_neighbors itu generate 
+        all possible neighbors dulu
+        """
         if not self.packs:
             return None
         
         for _ in range(max_attempts):
             selected_function = random.randint(1, 3)
             pack = random.choice(self.packs)
-            
+
             match selected_function:
                 case 1:  # move_pack
                         w, h, l = pack.dim.width, pack.dim.height, pack.dim.length
