@@ -44,6 +44,9 @@ class Package:
         self.isFragile = isFragile
         self.eta = eta
         self.isInside = isInside
+    def copy(self):
+        return Package(self.id, self.pos, self.dim, self.value, self.weight,
+                       self.isFragile, self.eta, self.isInside)
     def is_valid(self):
         return (self.pos.x >= 0 and 
                 self.pos.y >= 0 and 
@@ -101,6 +104,11 @@ class TruckState:
                 for pack in self.packs
             ]
         )
+    def _find(self, packid):
+        for pack in self.packs:
+            if pack.id == packid:
+                return pack
+        raise ValueError(f"package id {packid} not found")
     def is_floating(self, pack):
         if(pack.pos.y == 0): 
             return False, []
@@ -132,64 +140,72 @@ class TruckState:
                 return False
             
         return True
+    def validate_change(self, changed, old):
+        # anggep old valid
+        inside = [p for p in self.packs if p.isInside]
+        if sum(p.weight for p in inside) > self.cap:
+            return False
+        for pack in changed:
+            if not pack.isInside:
+                continue
+            if not pack.is_valid() or self.is_outside(pack):
+                return False
+            if any(pack.is_overlap(other) for other in inside if other.id != pack.id):
+                return False
+            floating, under = self.is_floating(pack)
+            if floating or any(un.isFragile for un in under):
+                return False
+        changed_ids = {pack.id for pack in changed}
+
+        footprints = [pack for pack in old if pack.isInside] + [pack for pack in changed if pack.isInside]
+        for pack in inside:
+            if pack.id in changed_ids:
+                continue
+            if any(pack.is_above(flt) for flt in footprints):
+                floating, under = self.is_floating(pack)
+                if floating or any(u.isFragile for u in under):
+                    return False
+        return True
     def move_pack(self, packid, newpos):
-        for pack in self.packs:
-            if pack.id == packid:
-                if pack.isInside and pack.pos.equal(newpos.x, newpos.y, newpos.z):
-                    return None
-                old_pos = pack.pos.copy()
-                old_inside = pack.isInside
-                pack.pos.move(newpos.x, newpos.y, newpos.z)
-                pack.isInside = True
-                try:
-                    return self.copy() if self.validate_state() else None
-                finally:
-                    pack.pos = old_pos
-                    pack.isInside = old_inside
-        return None
+        pack = self._find(packid)
+        if pack.isInside and pack.pos.equal(newpos.x, newpos.y, newpos.z):
+            return None
+        old = pack.copy()
+        pack.pos.move(newpos.x, newpos.y, newpos.z)
+        pack.isInside = True
+        try:
+            return self.copy() if self.validate_change([pack], [old]) else None
+        finally:
+            pack.pos = old.pos
+            pack.isInside = old.inside
     def rotate_pack(self, packid, axis=0):
         # axis 0 = x, 1 = y, 2 = z
         if axis < 0 or axis > 2:
             return None
         inside = [p for p in self.packs if p.isInside]
-        for pack in inside:
-            if pack.id == packid:
-                old_dim = pack.dim.copy()
-                if axis == 0:
-                    pack.dim.rotate_x()
-                elif axis == 1:
-                    pack.dim.rotate_y()
-                else:
-                    pack.dim.rotate_z()
-                try:
-                    return self.copy() if self.validate_state() else None
-                finally:
-                    pack.dim = old_dim
-        return None
-    def swap_pack(self, id1, id2):
-        swapping = []
-        for _, pack in enumerate(self.packs):
-            if pack.id == id1 or pack.id == id2:
-                swapping.append(pack)
-        if len(swapping) != 2:
-            raise ValueError(f"package id invalid: expected 2, found {len(swapping)}")
-        if not swapping[0].isInside and not swapping[1].isInside:
-            return None
-        temp = swapping[0].isInside
-        swapping[0].isInside = swapping[1].isInside
-        swapping[1].isInside = temp
-        
-        temppos = swapping[0].pos.copy()
-        swapping[0].pos = swapping[1].pos.copy()
-        swapping[1].pos = temppos
-
+        pack = self._find(packid)
+        old = pack.copy()
+        if axis == 0:
+            pack.dim.rotate_x()
+        elif axis == 1:
+            pack.dim.rotate_y()
+        else:
+            pack.dim.rotate_z()
         try:
-            return self.copy() if self.validate_state() else None
+            return self.copy() if self.validate_change([pack], [old]) else None
         finally:
-            temp = swapping[0].isInside
-            swapping[0].isInside = swapping[1].isInside
-            swapping[1].isInside = temp
-
-            temppos = swapping[0].pos.copy()
-            swapping[0].pos = swapping[1].pos.copy()
-            swapping[1].pos = temppos
+            pack.dim = old.dim
+    def swap_pack(self, id1, id2):
+        if (id1 == id2):
+            return None
+        pack1, pack2 = self._find(id1), self._find(id2)
+        if not pack1.isInside and not pack2.isInside:
+            return None
+        olds = [pack1.copy(), pack2.copy()]
+        pack1.isInside, pack2.isInside = pack2.isInside, pack1.isInside
+        pack1.pos,pack2.pos = pack2.pos.copy(), pack1.pos.copy()
+        try:
+            return self.copy() if self.validate_change([pack1, pack2], olds) else None
+        finally:
+            pack1.pos, pack2.pos = olds[0].pos, olds[1].pos
+            pack1.isInside, pack2.isInside = olds[0].isInside, olds[1].isInside
