@@ -40,7 +40,7 @@ def steepest_ascent(truck: TruckState) -> SearchResult:
     )
 
 # ASUMSI truk kosong
-def stochastic(truck: TruckState) -> SearchResult:
+def stochastic(truck: TruckState, max_iter: int = 50) -> SearchResult:
     start_time = time.perf_counter()
     
     initial_state = truck.copy()
@@ -49,17 +49,16 @@ def stochastic(truck: TruckState) -> SearchResult:
     val = current_state.count_value()
 
     obj_history = [val]
-    while True:
-        better_state = []
-        states = current_state.get_neighbors()
-        for state in states:
-            curval = state.count_value()
-            if curval > val:
-                better_state.append(state)
-        if len(better_state) == 0:
+    i = 0
+    while i < max_iter:
+        next_state = current_state.get_random_neighbor(200)
+        if next_state is None:
             break
-        current_state = random.choice(better_state)
-        val = current_state.count_value()
+        if next_state.count_value() > current_state.count_value():
+            current_state = next_state
+            i = 0
+        else:
+            i += 1
         obj_history.append(current_state.count_value())
 
     duration = time.perf_counter() - start_time

@@ -126,6 +126,9 @@ with st.sidebar:
     elif algo_choice == "Random Restart Hill Climbing":
         algo_params["max_restart"] = st.number_input("Batas Maksimum Restart", min_value=1, max_value=100, value=10)
 
+    elif algo_choice == "Stochastic Hill Climbing":
+        algo_params["max_iter"] = st.number_input("Batas Maksimum Iterasi", min_value=1.0, max_value=10000.0, value=200.0, step=10.0)
+
     elif algo_choice == "Genetic Algorithm":
         ga_mode = st.radio(
             "Mode Eksperimen GA",
@@ -223,7 +226,7 @@ if run_btn:
             else:
                 start_state = re_randomize_existing_packs(st.session_state["base_state"])
 
-            res = stochastic(start_state)
+            res = stochastic(start_state, algo_params["max_iter"])
             runs_output.append((f"Run #{i + 1}", res))
             progress.progress((i + 1) / num_runs, text=f"Selesai Run #{i + 1} dari {num_runs}")
 
