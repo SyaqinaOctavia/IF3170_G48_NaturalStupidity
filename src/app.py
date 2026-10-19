@@ -11,27 +11,75 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Eksperimen Local Search")
-st.caption("Visualisasi State 3D, Kurva Konvergensi 2D, dan Pencatatan Log Eksperimen")
+st.title("Dashboard Local Search")
+# st.caption("Visualisasi State 3D, Kurva Konvergensi 2D, dan Pencatatan Log Eksperimen")
 
 # PANEL SAMPING (PARAMETER)
+if "manual_packs" not in st.session_state:
+    st.session_state["manual_packs"] = []
+
 with st.sidebar:
-    st.header("1. Konfigurasi Kontainer & Paket")
+    st.markdown("""
+        <style>
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            gap: 0.5rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    st.header("Input Package Manual")
     col_w, col_h, col_l = st.columns(3)
     with col_w:
-        truck_w = st.number_input("Width (X)", min_value=2, max_value=30, value=6)
+        truck_w = st.number_input("Width Truk", min_value=1, max_value=50, value=6)
     with col_h:
-        truck_h = st.number_input("Height (Y)", min_value=2, max_value=30, value=6)
+        truck_h = st.number_input("Height Truk", min_value=1, max_value=50, value=6)
     with col_l:
-        truck_l = st.number_input("Length (Z)", min_value=2, max_value=30, value=6)
-
+        truck_l = st.number_input("Length Truk", min_value=1, max_value=50, value=6)
+    
     truck_cap = st.number_input("Kapasitas Berat (cap)", min_value=10, max_value=5000, value=150, step=10)
+    
+    manual_packs = st.session_state["manual_packs"]
+    st.subheader("Tambah Package")
+    with st.form("add_pack_form", clear_on_submit=False):
+        st.caption(f"ID otomatis: {len(manual_packs)}")
+        in_w, in_h, in_l = st.columns(3)
+        with in_w:
+            pack_w = st.number_input("Width (X)", min_value=1, max_value=50, value=2, key="in_w")
+        with in_h:
+            pack_h = st.number_input("Height (Y)", min_value=1, max_value=50, value=2, key="in_h")
+        with in_l:
+            pack_l = st.number_input("Length (Z)", min_value=1, max_value=50, value=2, key="in_l")
+        in_val, in_weight, in_eta = st.columns(3)
+        with in_val:
+            field_val = st.number_input("Value", min_value=1, max_value=1000, value=10, key="in_val")
+        with in_weight:
+            field_weight = st.number_input("Weight", min_value=1, max_value=1000, value=10, key="in_weight")
+        with in_eta:
+            field_eta = st.number_input("ETA", min_value=1, max_value=50, value=1, key="in_eta")
+        in_frag = st.toggle("Fragile", value=False, key="in_frag")
+    if st.button("Input Pack", use_container_width=True, key="pack_in"):
+        manual_packs.append(
+            Package(
+                ident=len(manual_packs), 
+                dim=Dimension(pack_w, pack_h, pack_l), 
+                value=field_val,
+                weight=field_weight,
+                eta=field_eta,
+                isFragile=in_frag,
+                isInside=False,
+                pos=Position(0, 0, 0)
+        ))
+    if st.button("Initial State Baru", use_container_width=True, key="manual_in"):
+        dim = Dimension(int(truck_w), int(truck_h), int(truck_l))
+        st.session_state["base_state"] = randomize_pack(TruckState(dim, truck_cap, manual_packs))
+        st.session_state.pop("experiment_runs", None)
+    st.subheader("Generate State Acak")
+    st.caption("Generate state dari 0 secara acak, state sebelumnya akan ditimpa")
     n_packs = st.number_input("Jumlah Paket (n_packs)", min_value=1, max_value=100, value=15)
     fragile_prob = st.slider("Probabilitas Fragile", min_value=0.0, max_value=1.0, value=0.25, step=0.05)
     use_seed = st.checkbox("Gunakan Seed Tetap", value=False)
     seed_val = st.number_input("Nilai Seed", value=42, step=1) if use_seed else None
 
-    if st.button("Initial State Baru", use_container_width=True):
+    if st.button("Generate Initial State", use_container_width=True):
         dim = Dimension(int(truck_w), int(truck_h), int(truck_l))
         st.session_state["base_state"] = random_state(
             truck_dim=dim,
@@ -43,7 +91,7 @@ with st.sidebar:
         st.session_state.pop("experiment_runs", None)
 
     st.divider()
-    st.header("2. Pilihan Algoritma & Parameter")
+    st.header("Pilihan Algoritma & Parameter")
     algo_choice = st.selectbox(
         "Pilih Algoritma",
         [
@@ -89,7 +137,7 @@ with st.sidebar:
             algo_params["pop_vars"] = st.text_input("3 Variasi Populasi (pisahkan koma)", value="20, 50, 100")
 
     st.divider()
-    st.header("3. Mode Eksekusi")
+    st.header("Mode Eksekusi")
     run_mode = st.radio("Jumlah Eksekusi", ["Single Run (1x)", "Batch Run (3x Eksperimen)"])
     randomize_each_run = st.checkbox(
         "Acak ulang posisi paket (randomize_pack) tiap Run pada Batch",
