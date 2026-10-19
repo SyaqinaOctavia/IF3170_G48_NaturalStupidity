@@ -3,6 +3,8 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Patch
 from utils import TruckState
 from search_result import SearchResult
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 def get_truck_summary(truck_state: TruckState):
     inside_packs = [p for p in truck_state.packs if p.isInside]
@@ -127,7 +129,7 @@ def plot_metrics_2d(result: SearchResult, algo_name: str):
         ax.plot(
             iterations,
             result.obj_history,
-            color="#386641",
+            color="#1948C2",
             linestyle="-",
             linewidth=2.2,
             label="Max Objective Function"
@@ -138,7 +140,7 @@ def plot_metrics_2d(result: SearchResult, algo_name: str):
             ax.plot(
                 range(len(avg_hist)),
                 avg_hist,
-                color="#386641",
+                color="#1948C2",
                 linestyle="--",
                 linewidth=1.8,
                 alpha=0.65,
@@ -165,3 +167,90 @@ def plot_metrics_2d(result: SearchResult, algo_name: str):
         ax.legend()
         fig.tight_layout()
         return fig
+
+def box_edges(x, y, z, dx, dy, dz):
+    c = [(x, y, z), (x+dx, y, z), (x+dx, y+dy, z), (x, y+dy, z),
+         (x, y, z+dz), (x+dx, y, z+dz), (x+dx, y+dy, z+dz), (x, y+dy, z+dz)]
+    ex, ey, ez = [], [], []
+    for a, b in [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),(0,4),(1,5),(2,6),(3,7)]:
+        ex += [c[a][0], c[b][0], None]   # None breaks the line between segments
+        ey += [c[a][1], c[b][1], None]
+        ez += [c[a][2], c[b][2], None]
+    return ex, ey, ez
+
+def box_vertices(x, y, z, dx, dy, dz):
+    xs = [x, x, x + dx, x + dx, x, x, x + dx, x + dx]
+    ys = [y, y + dy, y + dy, y, y, y + dy, y + dy, y]
+    zs = [z, z, z, z, z + dz, z + dz, z + dz, z + dz]
+    return xs, ys, zs
+
+def plot_truck_3d_movable(fig, truck, title, scene):
+    width, height, length = truck.dim.width, truck.dim.height, truck.dim.length
+    col = scene
+    scene_name = f"scene{scene}"
+
+    cx = [0, width, width, 0, 0, None, 0, width, width, 0, 0, None, 0, 0, None, width, width, None, width, width, None, 0, 0]
+    cy = [0, 0, length, length, 0, None, 0, 0, length, length, 0, None, 0, 0, None, 0, 0, None, length, length, None, length, length]
+    cz = [0, 0, 0, 0, 0, None, height, height, height, height, height, None, 0, height, None, 0, height, None, 0, height, None, 0, height]
+    fig.add_trace(go.Scatter3d(x=cx, y=cy, z=cz, mode="lines",
+                               line=dict(color="black", width=3),
+                               showlegend=False, hoverinfo="skip"),
+                  row=1, col=col)
+    label_x, label_y, label_z, label_t = [], [], [], []
+    for p in truck.packs:
+        if not p.isInside:
+            continue
+        x, y, z = p.pos.x, p.pos.z, p.pos.y
+        dx, dy, dz = p.dim.width, p.dim.length, p.dim.height
+        vx, vy, vz = box_vertices(x, y, z, dx, dy, dz)
+        color = "#e63946" if p.isFragile else "#457b9d"
+        ex, ey, ez = box_edges(x, y, z, dx, dy, dz)
+        fig.add_trace(go.Mesh3d(
+            x=vx, y=vy, z=vz, 
+            i=[7, 0, 0, 0, 4, 4, 6, 6, 4, 0, 3, 2], 
+            j=[3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3], 
+            k=[0, 7, 2, 3, 6, 7, 1, 1, 5, 5, 7, 6],
+            color=color, 
+            opacity=1.0, 
+            flatshading=True,
+            lighting=dict(ambient=0.6, diffuse=0.8, specular=0.1),
+            hovertext=(f"P{p.id}<br>value={p.value}<br>weight={p.weight}"
+                       f"<br>fragile={p.isFragile}<br>pos=({p.pos.x}, {p.pos.y}, {p.pos.z})"
+                       f"<br>size=({p.dim.width}, {p.dim.height}, {p.dim.length})"),
+            hoverinfo="text", showlegend=False
+        ), row=1, col=col)
+        fig.add_trace(go.Scatter3d(
+            x=ex, y=ey, z=ez,
+            mode="lines",
+            line=dict(color="black", width=2),
+            showlegend=False
+        ))
+        label_x.append(x + dx / 2); label_y.append(y + dy / 2)
+        label_z.append(z + dz / 2); label_t.append(f"P{p.id}")
+
+    fig.add_trace(go.Scatter3d(x=label_x, y=label_y, z=label_z, text=label_t,
+                               mode="text", textfont=dict(color="white", size=11),
+                               showlegend=False, hoverinfo="skip"),
+                  row=1, col=col)
+
+    fig.update_layout(**{scene_name: dict(
+        xaxis=dict(title="X - Width", range=[0, width]),
+        yaxis=dict(title="Z - Length", range=[0, length]),
+        zaxis=dict(title="Y - Height", range=[0, height]),
+        aspectmode="manual", aspectratio=dict(x=width, y=length, z=height),
+    )})
+
+def plot_comparison_3d_interactive(init_state: TruckState, final_state: TruckState):
+    si, sf = get_truck_summary(init_state), get_truck_summary(final_state)
+    fig = make_subplots(
+        rows=1, cols=2,
+        specs=[[{"type": "scene"}, {"type": "scene"}]],
+        subplot_titles=(
+            f"Initial State<br>Value: {si['total_value']} | Paket: {si['inside_count']}/{si['total_packs']} | Berat: {si['total_weight']}/{si['capacity']}",
+            f"Final State<br>Value: {sf['total_value']} | Paket: {sf['inside_count']}/{sf['total_packs']} | Berat: {sf['total_weight']}/{sf['capacity']}",
+        ),
+    )
+    plot_truck_3d_movable(fig, init_state, "Initial State", 1)
+    plot_truck_3d_movable(fig, final_state, "Final State", 2)
+    fig.update_layout(height=600, margin=dict(l=0, r=0, t=80, b=0))
+    return fig

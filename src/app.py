@@ -4,7 +4,7 @@ from utils import Dimension, TruckState
 from state import random_state, randomize_pack
 from simmulated_annealing import simmulate_annealing
 from hill_climbing import *
-from visualizer import plot_comparison_3d, plot_metrics_2d, get_truck_summary
+from visualizer import plot_comparison_3d, plot_comparison_3d_interactive, plot_metrics_2d, get_truck_summary
 
 st.set_page_config(
     page_title="Dashboard",
@@ -239,8 +239,13 @@ if "experiment_runs" not in st.session_state:
     c3.metric("Total Berat / Kapasitas", f"{base_summary['total_weight']} / {base_summary['capacity']}")
     c4.metric("Paket Pecah Belah (Fragile)", base_summary["fragile_count"])
 
-    fig_preview = plot_comparison_3d(st.session_state["base_state"], st.session_state["base_state"])
-    st.pyplot(fig_preview)
+    interactive = st.toggle("3D interaktif", value=False)
+    if interactive:
+        st.plotly_chart(plot_comparison_3d_interactive(st.session_state["base_state"], st.session_state["base_state"]),
+                        use_container_width=True)
+    else:
+        fig = plot_comparison_3d(st.session_state["base_state"], st.session_state["base_state"])
+        st.pyplot(fig)
 
 # TAMPILAN HASIL DAN PANEL LOG
 else:
@@ -288,7 +293,7 @@ else:
     tab_labels = [label for label, _ in runs_list]
     tabs = st.tabs(tab_labels)
 
-    for tab, (run_label, res) in zip(tabs, runs_list):
+    for idx, (tab, (run_label, res)) in enumerate(zip(tabs, runs_list)):
         with tab:
             init_sum = get_truck_summary(res.initial_state)
             final_sum = get_truck_summary(res.final_state)
@@ -313,8 +318,8 @@ else:
                 m5.metric("Populasi", res.metrics.get("pop_size", "-"))
 
             st.markdown("#### 1. Komparasi Visualisasi 3D (Initial State vs Final State)")
-            fig_3d = plot_comparison_3d(res.initial_state, res.final_state)
-            st.pyplot(fig_3d)
+            fig_3d = plot_comparison_3d_interactive(res.initial_state, res.final_state)
+            st.plotly_chart(fig_3d, use_container_width=True, key=f"3d_{idx}")
 
             st.markdown("#### 2. Grafik Kurva Eksperimen 2D")
             fig_2d = plot_metrics_2d(res, algo_used)
