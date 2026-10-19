@@ -1,11 +1,10 @@
+from copy import deepcopy
 import random
 import time
 from typing import List
 from utils import *
 from state import *
 from search_result import SearchResult
-from utils import TruckState, Package, Position, Dimension
-from state import generate_population
 
 def selection(population):
     #Roulette Wheel Selection (bobot berdasarkan fitness)
@@ -46,7 +45,7 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
     start_time = time.perf_counter()
     
     pop = generate_population(base_truck, pop_size, seed=seed)
-    initial_state = base_truck.copy()
+    initial_state = pop[0].copy()
     
     history_max = []
     history_avg = []
@@ -54,9 +53,9 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
     
     best_overall = max(pop, key=lambda s: s.count_value())
     
-    for i in range(iterations):
+    for _ in range(iterations):
         # Evaluate
-        fitness = [s.count_value() if s.is_valid else 0 for s in pop]
+        fitness = [s.count_value() if s.validate_state() else 0 for s in pop]
         max_fit = max(fitness)
         avg_fit = sum(fitness) / len(fitness)
         gen_best = pop[fitness.index(max_fit)]
@@ -101,7 +100,7 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
         
         # Next generation
         pop = elites + next_gen[:pop_size - elitism]
-        assert len(pop) == pop_size
+        assert len(pop) == pop_size #pastiin jumlah sesuai
     
     duration = time.perf_counter() - start_time
     final_state = best_overall
