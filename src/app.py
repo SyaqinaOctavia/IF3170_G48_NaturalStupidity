@@ -3,6 +3,7 @@ import pandas as pd
 from utils import Dimension, TruckState
 from state import random_state, randomize_pack
 from simmulated_annealing import simmulate_annealing
+from hill_climbing import *
 from visualizer import plot_comparison_3d, plot_metrics_2d, get_truck_summary
 
 st.set_page_config(
@@ -134,6 +135,84 @@ if run_btn:
                 start_state,
                 T0=algo_params["T0"],
                 alpha=algo_params["alpha"]
+            )
+            runs_output.append((f"Run #{i + 1}", res))
+            progress.progress((i + 1) / num_runs, text=f"Selesai Run #{i + 1} dari {num_runs}")
+
+        progress.empty()
+        st.session_state["experiment_runs"] = {
+            "algo": algo_choice,
+            "runs": runs_output
+        }
+    elif algo_choice == "Steepest Ascent Hill Climbing":
+        runs_output = []
+        progress = st.progress(0, text="Menjalankan Steepest Ascent Hill Climbing...")
+        for i in range(num_runs):
+            if i == 0 or not randomize_each_run:
+                start_state = st.session_state["base_state"].copy()
+            else:
+                start_state = re_randomize_existing_packs(st.session_state["base_state"])
+
+            res = steepest_ascent(start_state)
+            runs_output.append((f"Run #{i + 1}", res))
+            progress.progress((i + 1) / num_runs, text=f"Selesai Run #{i + 1} dari {num_runs}")
+
+        progress.empty()
+        st.session_state["experiment_runs"] = {
+            "algo": algo_choice,
+            "runs": runs_output
+        }
+    elif algo_choice == "Stochastic Hill Climbing":
+        runs_output = []
+        progress = st.progress(0, text="Menjalankan Stochastic Hill Climbing...")
+        for i in range(num_runs):
+            if i == 0 or not randomize_each_run:
+                start_state = st.session_state["base_state"].copy()
+            else:
+                start_state = re_randomize_existing_packs(st.session_state["base_state"])
+
+            res = stochastic(start_state)
+            runs_output.append((f"Run #{i + 1}", res))
+            progress.progress((i + 1) / num_runs, text=f"Selesai Run #{i + 1} dari {num_runs}")
+
+        progress.empty()
+        st.session_state["experiment_runs"] = {
+            "algo": algo_choice,
+            "runs": runs_output
+        }
+    elif algo_choice == "Hill Climbing with Sideways Move":
+        runs_output = []
+        progress = st.progress(0, text="Menjalankan Hill Climbing with Sideways Move...")
+        for i in range(num_runs):
+            if i == 0 or not randomize_each_run:
+                start_state = st.session_state["base_state"].copy()
+            else:
+                start_state = re_randomize_existing_packs(st.session_state["base_state"])
+
+            res = sideways_move(
+                start_state,
+                max_sideways=algo_params["max_sideways_move"]
+            )
+            runs_output.append((f"Run #{i + 1}", res))
+            progress.progress((i + 1) / num_runs, text=f"Selesai Run #{i + 1} dari {num_runs}")
+
+        progress.empty()
+        st.session_state["experiment_runs"] = {
+            "algo": algo_choice,
+            "runs": runs_output
+        }
+    elif algo_choice == "Random Restart Hill Climbing":
+        runs_output = []
+        progress = st.progress(0, text="Menjalankan Random Restart Hill Climbing...")
+        for i in range(num_runs):
+            if i == 0 or not randomize_each_run:
+                start_state = st.session_state["base_state"].copy()
+            else:
+                start_state = re_randomize_existing_packs(st.session_state["base_state"])
+
+            res = random_restart(
+                start_state,
+                max_restart=algo_params["max_restart"]
             )
             runs_output.append((f"Run #{i + 1}", res))
             progress.progress((i + 1) / num_runs, text=f"Selesai Run #{i + 1} dari {num_runs}")
