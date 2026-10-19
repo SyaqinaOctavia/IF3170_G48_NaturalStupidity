@@ -184,7 +184,7 @@ def box_vertices(x, y, z, dx, dy, dz):
     zs = [z, z, z, z, z + dz, z + dz, z + dz, z + dz]
     return xs, ys, zs
 
-def plot_truck_3d_movable(fig, truck, title, scene):
+def plot_truck_3d_movable(fig, truck, scene):
     width, height, length = truck.dim.width, truck.dim.height, truck.dim.length
     col = scene
     scene_name = f"scene{scene}"
@@ -224,7 +224,7 @@ def plot_truck_3d_movable(fig, truck, title, scene):
             mode="lines",
             line=dict(color="black", width=2),
             showlegend=False
-        ))
+        ), row=1, col=col)
         label_x.append(x + dx / 2); label_y.append(y + dy / 2)
         label_z.append(z + dz / 2); label_t.append(f"P{p.id}")
 
@@ -250,7 +250,7 @@ def plot_comparison_3d_interactive(init_state: TruckState, final_state: TruckSta
             f"Final State<br>Value: {sf['total_value']} | Paket: {sf['inside_count']}/{sf['total_packs']} | Berat: {sf['total_weight']}/{sf['capacity']}",
         ),
     )
-    plot_truck_3d_movable(fig, init_state, "Initial State", 1)
-    plot_truck_3d_movable(fig, final_state, "Final State", 2)
+    plot_truck_3d_movable(fig, init_state, 1)
+    plot_truck_3d_movable(fig, final_state, 2)
     fig.update_layout(height=600, margin=dict(l=0, r=0, t=80, b=0))
     return fig
