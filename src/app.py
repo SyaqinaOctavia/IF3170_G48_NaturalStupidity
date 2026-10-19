@@ -56,7 +56,8 @@ with st.sidebar:
             field_weight = st.number_input("Weight", min_value=1, max_value=1000, value=10, key="in_weight")
         with in_eta:
             field_eta = st.number_input("ETA", min_value=1, max_value=50, value=1, key="in_eta")
-        in_frag = st.toggle("Fragile", value=False, key="in_frag")
+        
+    in_frag = st.toggle("Fragile", value=False, key="in_frag")
     if st.button("Input Pack", use_container_width=True, key="pack_in"):
         manual_packs.append(
             Package(
@@ -65,7 +66,7 @@ with st.sidebar:
                 value=field_val,
                 weight=field_weight,
                 eta=field_eta,
-                isFragile=in_frag,
+                isFragile=st.session_state.in_frag,
                 isInside=False,
                 pos=Position(0, 0, 0)
         ))
