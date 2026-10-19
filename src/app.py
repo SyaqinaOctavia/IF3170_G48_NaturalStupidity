@@ -318,8 +318,13 @@ else:
                 m5.metric("Populasi", res.metrics.get("pop_size", "-"))
 
             st.markdown("#### 1. Komparasi Visualisasi 3D (Initial State vs Final State)")
-            fig_3d = plot_comparison_3d_interactive(res.initial_state, res.final_state)
-            st.plotly_chart(fig_3d, use_container_width=True, key=f"3d_{idx}")
+            interactive = st.toggle("3D interaktif", value=False)
+            if interactive:
+                fig_3d = plot_comparison_3d_interactive(res.initial_state, res.final_state)
+                st.plotly_chart(fig_3d, use_container_width=True, key=f"3d_{idx}")
+            else:
+                fig = plot_comparison_3d(res.initial_state, res.final_state)
+                st.pyplot(fig)
 
             st.markdown("#### 2. Grafik Kurva Eksperimen 2D")
             fig_2d = plot_metrics_2d(res, algo_used)
