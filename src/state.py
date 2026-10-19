@@ -78,3 +78,40 @@ def randomize_pack(truck, max_attempts=50, seed=None):
 
     assert state.validate_state()
     return state
+
+def generate_population( base_truck, K, max_attempts=50, max_retries=100, seed=None,
+):
+    """
+    Menghasilkan K kromosom untuk populasi awal GA.
+    Return: List berisi K objek TruckState yang valid.
+    """
+    if K <= 0:
+        raise ValueError("K harus lebih besar dari 0.")
+
+    rng = random.Random(seed)
+    population = []
+
+    for i in range(K):
+        chromosome = None
+
+        for _ in range(max_retries):
+            candidate = randomize_pack(
+                base_truck,
+                max_attempts=max_attempts,
+                seed=rng.randint(0, 2**32 - 1),
+            )
+
+            if candidate is not None and candidate.validate_state():
+                chromosome = candidate
+                break
+
+        if chromosome is None:
+            raise RuntimeError(
+                f"Gagal menghasilkan kromosom ke-{i + 1} "
+                f"setelah {max_retries} percobaan."
+            )
+
+        population.append(chromosome)
+
+    assert len(population) == K
+    return population
