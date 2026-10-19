@@ -68,10 +68,20 @@ with st.sidebar:
                 isInside=False,
                 pos=Position(0, 0, 0)
         ))
-    if st.button("Initial State Baru", use_container_width=True, key="manual_in"):
+        st.rerun()
+
+    if st.button("Acak pack yang sudah ditambahkan", use_container_width=True, key="manual_in"):
         dim = Dimension(int(truck_w), int(truck_h), int(truck_l))
         st.session_state["base_state"] = randomize_pack(TruckState(dim, truck_cap, manual_packs))
         st.session_state.pop("experiment_runs", None)
+        st.rerun()
+
+    if st.button("Hapus pack", use_container_width=True, key="hapus_pack"):
+        manual_packs.clear()
+        dim = Dimension(int(truck_w), int(truck_h), int(truck_l))
+        st.session_state["base_state"] = randomize_pack(TruckState(dim, truck_cap, manual_packs))
+        st.rerun()
+        
     st.subheader("Generate State Acak")
     st.caption("Generate state dari 0 secara acak, state sebelumnya akan ditimpa")
     n_packs = st.number_input("Jumlah Paket (n_packs)", min_value=1, max_value=100, value=15)
@@ -150,13 +160,7 @@ with st.sidebar:
 # Inisialisasi state awal jika belum ada di session_state
 if "base_state" not in st.session_state:
     init_dim = Dimension(int(truck_w), int(truck_h), int(truck_l))
-    st.session_state["base_state"] = random_state(
-        truck_dim=init_dim,
-        cap=int(truck_cap),
-        n_packs=int(n_packs),
-        fragile_prob=float(fragile_prob),
-        seed=int(seed_val) if seed_val is not None else None
-    )
+    st.session_state["base_state"] = randomize_pack(TruckState(init_dim, truck_cap, []))
 
 # Helper untuk mengosongkan truk lalu mengacak ulang posisi paket yang sama
 def re_randomize_existing_packs(base_truck: TruckState) -> TruckState:

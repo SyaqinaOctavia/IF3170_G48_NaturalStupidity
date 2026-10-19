@@ -5,6 +5,7 @@ from utils import TruckState
 from search_result import SearchResult
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import math
 
 def get_truck_summary(truck_state: TruckState):
     inside_packs = [p for p in truck_state.packs if p.isInside]
@@ -19,6 +20,7 @@ def get_truck_summary(truck_state: TruckState):
         "total_value": total_value,
         "fragile_count": fragile_count
     }
+
 
 def plot_truck_3d(ax, truck_state: TruckState, title: str):
     W = truck_state.dim.width
@@ -37,30 +39,31 @@ def plot_truck_3d(ax, truck_state: TruckState, title: str):
     ax.set_box_aspect((W, L, H))
 
     inside_packs = [p for p in truck_state.packs if p.isInside]
-    for pack in inside_packs:
-        x = pack.pos.x
-        y_vert = pack.pos.y
-        z_depth = pack.pos.z
+    if inside_packs:
+        xs = [p.pos.x for p in inside_packs]
+        zs = [p.pos.z for p in inside_packs]
+        ys = [p.pos.y for p in inside_packs]
+        dxs = [p.dim.width for p in inside_packs]
+        dzs = [p.dim.length for p in inside_packs]
+        dys = [p.dim.height for p in inside_packs]
+        colors = ["#e63946" if p.isFragile else "#457b9d" for p in inside_packs]
 
-        dx = pack.dim.width
-        dy_vert = pack.dim.height
-        dz_depth = pack.dim.length
-
-        color = "#e63946" if pack.isFragile else "#457b9d"
         ax.bar3d(
-            x, z_depth, y_vert,
-            dx, dz_depth, dy_vert,
-            color=color,
-            alpha=0.82,
+            xs, zs, ys,
+            dxs, dzs, dys,
+            color=colors,
+            alpha=1.0,
             edgecolor="#1d3557",
-            linewidth=0.8
+            linewidth=0.8,
+            zsort="min"
         )
 
-        cx = x + dx / 2.0
-        cz = z_depth + dz_depth / 2.0
-        cy = y_vert + dy_vert / 2.0
-        ax.text(cx, cz, cy, f"P{pack.id}", color="white", fontsize=8,
-                ha="center", va="center", weight="bold")
+        for pack in inside_packs:
+            cx = pack.pos.x + pack.dim.width / 2.0
+            cz = pack.pos.z + pack.dim.length / 2.0
+            cy = pack.pos.y + pack.dim.height / 2.0
+            ax.text(cx, cz, cy, f"P{pack.id}", color="white", fontsize=8,
+                    ha="center", va="center", weight="bold")
 
     summary = get_truck_summary(truck_state)
     subtitle = (
@@ -70,6 +73,7 @@ def plot_truck_3d(ax, truck_state: TruckState, title: str):
         f"Berat: {summary['total_weight']}/{summary['capacity']}"
     )
     ax.set_title(subtitle, fontsize=10, fontweight="bold", pad=12)
+
 
 def plot_comparison_3d(init_state: TruckState, final_state: TruckState):
     fig = plt.figure(figsize=(14, 6))
