@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import json
 from utils import Dimension, TruckState
 from state import random_state, randomize_pack
 from simmulated_annealing import simmulate_annealing
@@ -14,6 +15,150 @@ st.set_page_config(
 
 st.title("Dashboard Local Search")
 # st.caption("Visualisasi State 3D, Kurva Konvergensi 2D, dan Pencatatan Log Eksperimen")
+
+def truck_state_to_json(truck_state: TruckState) -> str:
+    data = {
+        "truck": {
+            "dim": {
+                "width": int(truck_state.dim.width),
+                "height": int(truck_state.dim.height),
+                "length": int(truck_state.dim.length)
+            },
+            "cap": int(truck_state.cap)
+        },
+        "packs": [
+            {
+                "id": int(p.id),
+                "dim": {
+                    "width": int(p.dim.width),
+                    "height": int(p.dim.height),
+                    "length": int(p.dim.length)
+                },
+                "pos": {
+                    "x": int(p.pos.x),
+                    "y": int(p.pos.y),
+                    "z": int(p.pos.z)
+                },
+                "value": int(p.value),
+                "weight": int(p.weight),
+                "isFragile": bool(p.isFragile),
+                "eta": int(p.eta),
+                "isInside": bool(p.isInside)
+            }
+            for p in truck_state.packs
+        ]
+    }
+    return json.dumps(data, indent=2)
+
+def check_state(state: TruckState) -> str:
+    inside = [p for p in state.packs if p.isInside]
+    total_weight = sum(p.weight for p in inside)
+    if total_weight > state.cap:
+        return f"Total berat paket di dalam truk ({total_weight}) melebihi kapasitas truk ({state.cap})."
+    for i, pack in enumerate(inside):
+        if not pack.is_valid():
+            return f"Paket P{pack.id} memiliki posisi atau dimensi tidak valid (harus >= 0 untuk posisi dan > 0 untuk dimensi)."
+        if state.is_outside(pack):
+            return f"Paket P{pack.id} pada posisi ({pack.pos.x}, {pack.pos.y}, {pack.pos.z}) dengan dimensi ({pack.dim.width}x{pack.dim.height}x{pack.dim.length}) keluar dari batas dimensi truk ({state.dim.width}x{state.dim.height}x{state.dim.length})."
+        for other in inside[i + 1:]:
+            if pack.is_overlap(other):
+                return f"Paket P{pack.id} dan P{other.id} saling tumpang tindih (overlap)."
+    for pack in inside:
+        floating, under = state.is_floating(pack)
+        if floating:
+            return f"Paket P{pack.id} melayang di udara (pos.y={pack.pos.y} tanpa penopang di bawahnya)."
+        if any(u.isFragile for u in under):
+            frag_ids = [f"P{u.id}" for u in under if u.isFragile]
+            return f"Paket P{pack.id} menindih paket pecah belah (Fragile): {', '.join(frag_ids)}."
+    return "Konfigurasi state tidak memenuhi aturan validasi truk."
+
+def load_truck_state_from_json(raw_json: str):
+    try:
+        data = json.loads(raw_json)
+    except Exception as e:
+        return None, f"Format JSON tidak valid: {e}"
+
+    if not isinstance(data, dict):
+        return None, "Root JSON harus berupa objek (dictionary)."
+
+    truck_info = data.get("truck", data)
+    dim_info = truck_info.get("dim", truck_info)
+    try:
+        t_w = int(dim_info["width"])
+        t_h = int(dim_info["height"])
+        t_l = int(dim_info["length"])
+        t_cap = int(truck_info["cap"])
+    except (KeyError, TypeError, ValueError) as e:
+        return None, f"Atribut dimensi/kapasitas truk ('width', 'height', 'length', 'cap') tidak lengkap atau bukan angka: {e}"
+
+    if t_w <= 0 or t_h <= 0 or t_l <= 0 or t_cap <= 0:
+        return None, "Dimensi truk dan kapasitas berat (cap) harus bernilai lebih dari 0."
+
+    packs_data = data.get("packs", [])
+    if not isinstance(packs_data, list):
+        return None, "Atribut 'packs' harus berupa list/array."
+
+    parsed_packs = []
+    seen_ids = set()
+    for idx, item in enumerate(packs_data):
+        if not isinstance(item, dict):
+            return None, f"Elemen paket ke-{idx} harus berupa objek JSON."
+        try:
+            pid = int(item.get("id", idx))
+            if pid in seen_ids:
+                return None, f"Terdapat duplikasi ID paket: P{pid}."
+            seen_ids.add(pid)
+
+            p_dim = item.get("dim", item)
+            pw = int(p_dim["width"])
+            ph = int(p_dim["height"])
+            pl = int(p_dim["length"])
+
+            has_pos = "pos" in item or all(k in item for k in ("x", "y", "z"))
+            p_pos = item.get("pos", item)
+            px = int(p_pos.get("x", 0))
+            py = int(p_pos.get("y", 0))
+            pz = int(p_pos.get("z", 0))
+
+            pval = int(item["value"])
+            pweight = int(item["weight"])
+            pfrag = bool(item.get("isFragile", False))
+            peta = int(item.get("eta", 1))
+            pinside = bool(item.get("isInside", True if has_pos else False))
+        except (KeyError, TypeError, ValueError) as e:
+            return None, f"Atribut paket ke-{idx} tidak lengkap atau tidak valid: {e}"
+
+        if pw <= 0 or ph <= 0 or pl <= 0 or pval <= 0 or pweight <= 0 or peta <= 0:
+            return None, f"Paket P{pid} memiliki dimensi, value, weight, atau ETA <= 0."
+
+        parsed_packs.append(
+            Package(
+                ident=pid,
+                pos=Position(px, py, pz) if pinside else Position(0, 0, 0),
+                dim=Dimension(pw, ph, pl),
+                value=pval,
+                weight=pweight,
+                isFragile=pfrag,
+                eta=peta,
+                isInside=pinside
+            )
+        )
+
+    candidate_state = TruckState(Dimension(t_w, t_h, t_l), t_cap, parsed_packs)
+    if not candidate_state.validate_state():
+        reason = check_state(candidate_state)
+        return None, f"State ditolak karena tidak valid: {reason}"
+
+    return candidate_state, f"State valid berhasil dimuat ({len(parsed_packs)} paket, {sum(1 for p in parsed_packs if p.isInside)} di dalam truk)."
+
+def export_experiment_log_to_json(algo_name: str, summary_rows: list) -> str:
+    output_payload = {
+        "algorithm": algo_name,
+        "total_runs": len(summary_rows),
+        "experiment_logs": summary_rows
+    }
+    return json.dumps(output_payload, indent=2)
+
 
 # PANEL SAMPING (PARAMETER)
 if "manual_packs" not in st.session_state:
@@ -101,6 +246,34 @@ with st.sidebar:
             seed=int(seed_val) if seed_val is not None else None
         )
         st.session_state.pop("experiment_runs", None)
+
+    #Json button
+    st.divider()
+    st.subheader("Load / Simpan State (JSON)")
+    uploaded_json = st.file_uploader("Upload File Input State (.json)", type=["json"], key="upload_state_json")
+    if st.button("Load State JSON", use_container_width=True, key="btn_load_json"):
+        if uploaded_json is None:
+            st.warning("Silakan pilih file .json terlebih dahulu.")
+        else:
+            raw_content = uploaded_json.getvalue().decode("utf-8")
+            loaded_state, msg = load_truck_state_from_json(raw_content)
+            if loaded_state is not None:
+                st.session_state["base_state"] = loaded_state
+                st.session_state["manual_packs"] = [p.copy() for p in loaded_state.packs]
+                st.session_state.pop("experiment_runs", None)
+                st.success(msg)
+            else:
+                st.error(msg)
+
+    if "base_state" in st.session_state:
+        st.download_button(
+            label="Download Initial State Saat Ini (.json)",
+            data=truck_state_to_json(st.session_state["base_state"]),
+            file_name="truck_state_input.json",
+            mime="application/json",
+            use_container_width=True,
+            key="dl_current_base_state"
+        )
 
     st.divider()
     st.header("Pilihan Algoritma & Parameter")
@@ -405,6 +578,28 @@ else:
     df_summary = pd.DataFrame(summary_rows)
     st.dataframe(df_summary, use_container_width=True, hide_index=True)
 
+
+    dl_col1, dl_col2 = st.columns(2)
+    safe_algo_slug = algo_used.lower().replace(" ", "_")
+    with dl_col1:
+        st.download_button(
+            label="Download Output Log Eksperimen (.json)",
+            data=export_experiment_log_to_json(algo_used, summary_rows),
+            file_name=f"output_log_{safe_algo_slug}.json",
+            mime="application/json",
+            use_container_width=True,
+            key="dl_log_json"
+        )
+    with dl_col2:
+        st.download_button(
+            label="Download Output Log Eksperimen (.csv)",
+            data=df_summary.to_csv(index=False).encode("utf-8"),
+            file_name=f"output_log_{safe_algo_slug}.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="dl_log_csv"
+        )
+
     # Tampilkan plot komparasi kurva GA jika terdapat lebih dari 1 run/variasi
     if algo_used == "Genetic Algorithm" and len(runs_list) > 1:
         with st.expander("Komparasi Kurva Konvergensi Antar Run / Variasi GA", expanded=True):
@@ -487,3 +682,11 @@ else:
                         "ETA": p.eta
                     })
                 st.dataframe(pd.DataFrame(pack_rows), use_container_width=True, hide_index=True)
+                st.download_button(
+                    label=f"Download Final State ({run_label}) (.json)",
+                    data=truck_state_to_json(res.final_state),
+                    file_name=f"final_state_{safe_algo_slug}_run_{idx + 1}.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    key=f"dl_final_state_{idx}"
+                )
