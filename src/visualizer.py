@@ -139,7 +139,7 @@ def plot_metrics_2d(result: SearchResult, algo_name: str):
             label="Max Objective Function"
         )
 
-        avg_hist = result.metrics.get("avg_obj_history", [])
+        avg_hist = result.metrics.get("avg_obj_history", result.metrics.get("avg_fitness", [])) # Fallback ke avg_fitness dari genetic_algorithm.py
         if avg_hist:
             ax.plot(
                 range(len(avg_hist)),
@@ -171,6 +171,33 @@ def plot_metrics_2d(result: SearchResult, algo_name: str):
         ax.legend()
         fig.tight_layout()
         return fig
+
+def plot_ga_comparison_2d(runs_list):
+    # Visualisasi komparasi kurva konvergensi (Max & Rata-rata) antar variasi/run GA
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 4.5))
+    palette = ["#1948C2", "#e63946", "#2a9d8f", "#f4a261", "#6a4c93", "#264653", "#e76f51", "#8ab17d", "#457b9d"]
+
+    for idx, (label, res) in enumerate(runs_list):
+        color = palette[idx % len(palette)]
+        ax1.plot(range(len(res.obj_history)), res.obj_history, color=color, linewidth=2.0, label=label)
+        avg_hist = res.metrics.get("avg_obj_history", res.metrics.get("avg_fitness", []))
+        if avg_hist:
+            ax2.plot(range(len(avg_hist)), avg_hist, color=color, linestyle="--", linewidth=1.8, label=label)
+
+    ax1.set_title("Komparasi Max Objective Function vs Generasi", fontweight="bold")
+    ax1.set_xlabel("Generasi / Iterasi")
+    ax1.set_ylabel("Max Objective Function")
+    ax1.grid(True, linestyle="--", alpha=0.5)
+    ax1.legend(fontsize=8)
+
+    ax2.set_title("Komparasi Rata-rata Objective Function vs Generasi", fontweight="bold")
+    ax2.set_xlabel("Generasi / Iterasi")
+    ax2.set_ylabel("Rata-rata Objective Function")
+    ax2.grid(True, linestyle="--", alpha=0.5)
+    ax2.legend(fontsize=8)
+
+    fig.tight_layout()
+    return fig
 
 def box_edges(x, y, z, dx, dy, dz):
     c = [(x, y, z), (x+dx, y, z), (x+dx, y+dy, z), (x, y+dy, z),

@@ -4,7 +4,8 @@ from utils import Dimension, TruckState
 from state import random_state, randomize_pack
 from simmulated_annealing import simmulate_annealing
 from hill_climbing import *
-from visualizer import plot_comparison_3d, plot_comparison_3d_interactive, plot_metrics_2d, get_truck_summary
+from genetic_algorithm import genetic_algorithm # Import fungsi Genetic Algorithm
+from visualizer import plot_comparison_3d, plot_comparison_3d_interactive, plot_metrics_2d, plot_ga_comparison_2d, get_truck_summary
 
 st.set_page_config(
     page_title="Dashboard",
@@ -148,6 +149,7 @@ with st.sidebar:
         else:
             algo_params["max_iter"] = st.number_input("Banyak Iterasi (Tetap)", min_value=1, max_value=2000, value=100)
             algo_params["pop_vars"] = st.text_input("3 Variasi Populasi (pisahkan koma)", value="20, 50, 100")
+        algo_params["mutation_rate"] = st.slider("Probabilitas Mutasi (mutation_rate)", min_value=0.0, max_value=1.0, value=0.20, step=0.05) # Input probabilitas mutasi GA
 
     st.divider()
     st.header("Mode Eksekusi")
@@ -277,12 +279,67 @@ if run_btn:
             "algo": algo_choice,
             "runs": runs_output
         }
-    else:
-        st.warning(
-            f"Modul **{algo_choice}** belum diimplementasikan oleh anggota tim. "
-            f"Setelah fungsi tersedia, cukup panggil fungsi tersebut di blok eksekusi `app.py` "
-            f"dan kembalikan objek `SearchResult`."
-        )
+    elif algo_choice == "Genetic Algorithm":
+        # Eksekusi Genetic Algorithm sesuai mode konfigurasi dan jumlah run
+        ga_mode = algo_params["ga_mode"]
+        mutation_rate = float(algo_params.get("mutation_rate", 0.20))
+        configs = []
+        valid_input = True
+
+        try:
+            if ga_mode == "Single Konfigurasi":
+                configs.append((int(algo_params["pop_size"]), int(algo_params["max_iter"]), None))
+            elif ga_mode == "Kontrol Populasi (3 Variasi Iterasi)":
+                p_fixed = int(algo_params["pop_size"])
+                iter_list = [max(1, int(x.strip())) for x in algo_params["iter_vars"].split(",") if x.strip()]
+                if not iter_list:
+                    raise ValueError("Daftar iterasi kosong.")
+                for it_val in iter_list:
+                    configs.append((p_fixed, it_val, f"Pop={p_fixed}, Iter={it_val}"))
+            else:
+                it_fixed = int(algo_params["max_iter"])
+                pop_list = [max(2, int(x.strip())) for x in algo_params["pop_vars"].split(",") if x.strip()]
+                if not pop_list:
+                    raise ValueError("Daftar populasi kosong.")
+                for p_val in pop_list:
+                    configs.append((p_val, it_fixed, f"Pop={p_val}, Iter={it_fixed}"))
+        except ValueError:
+            valid_input = False
+            st.error("Input variasi populasi/iterasi tidak valid. Gunakan angka bulat yang dipisahkan koma (contoh: 50, 100, 200).")
+
+        if valid_input:
+            runs_output = []
+            total_steps = len(configs) * num_runs
+            step_idx = 0
+            progress = st.progress(0, text="Menjalankan Genetic Algorithm...")
+            base_seed = int(seed_val) if seed_val is not None else 21
+
+            for p_size, m_iter, cfg_label in configs:
+                for i in range(num_runs):
+                    step_idx += 1
+                    run_seed = base_seed if (i == 0 or not randomize_each_run) else (base_seed + i)
+                    start_state = st.session_state["base_state"].copy()
+                    res = genetic_algorithm(
+                        start_state,
+                        pop_size=p_size,
+                        iterations=m_iter,
+                        mutation_rate=mutation_rate,
+                        seed=run_seed
+                    )
+                    if cfg_label is None:
+                        run_name = f"Run #{i + 1}"
+                    elif num_runs == 1:
+                        run_name = cfg_label
+                    else:
+                        run_name = f"{cfg_label} (Run #{i + 1})"
+                    runs_output.append((run_name, res))
+                    progress.progress(step_idx / total_steps, text=f"Selesai {run_name} ({step_idx}/{total_steps})")
+
+            progress.empty()
+            st.session_state["experiment_runs"] = {
+                "algo": algo_choice,
+                "runs": runs_output
+            }
 
 # TAMPILAN STATE AWAL (SEBELUM RUN)
 if "experiment_runs" not in st.session_state:
@@ -337,12 +394,21 @@ else:
             row["Iterasi per Restart"] = str(res.metrics.get("iter_per_restart", []))
         elif algo_used == "Genetic Algorithm":
             row["Jumlah Populasi"] = res.metrics.get("pop_size", "-")
-            row["Banyak Iterasi"] = res.metrics.get("max_iter", "-")
+            row["Banyak Iterasi"] = res.metrics.get("max_iter", res.metrics.get("iterations", "-")) # Fallback ke iterations
+            avg_hist = res.metrics.get("avg_fitness", []) # Ambil histori rata-rata fitness populasi
+            row["Rata-rata Fitness Akhir"] = round(avg_hist[-1], 2) if avg_hist else "-"
+            row["Mutation Rate"] = res.metrics.get("mutation_rate", "-")
 
         summary_rows.append(row)
 
     df_summary = pd.DataFrame(summary_rows)
     st.dataframe(df_summary, use_container_width=True, hide_index=True)
+
+    # Tampilkan plot komparasi kurva GA jika terdapat lebih dari 1 run/variasi
+    if algo_used == "Genetic Algorithm" and len(runs_list) > 1:
+        with st.expander("Komparasi Kurva Konvergensi Antar Run / Variasi GA", expanded=True):
+            fig_ga_comp = plot_ga_comparison_2d(runs_list)
+            st.pyplot(fig_ga_comp)
 
     # Tabs untuk melihat detail visualisasi 3D dan plot 2D pada masing-masing run
     tab_labels = [label for label, _ in runs_list]
@@ -384,6 +450,27 @@ else:
             st.markdown("#### 2. Grafik Kurva Eksperimen 2D")
             fig_2d = plot_metrics_2d(res, algo_used)
             st.pyplot(fig_2d)
+
+            # Visualisasi tambahan: melihat perkembangan Best State per Generasi pada GA
+            if algo_used == "Genetic Algorithm" and res.metrics.get("best_state_per_gen"):
+                with st.expander("Lihat Perkembangan Best State per Generasi (3D)"):
+                    gen_states = res.metrics["best_state_per_gen"]
+                    gen_idx = st.slider(
+                        "Pilih Generasi",
+                        min_value=1,
+                        max_value=len(gen_states),
+                        value=len(gen_states),
+                        key=f"gen_slider_{idx}"
+                    ) if len(gen_states) > 1 else 1
+                    selected_gen_state = gen_states[gen_idx - 1]
+                    if interactive:
+                        st.plotly_chart(
+                            plot_comparison_3d_interactive(res.initial_state, selected_gen_state),
+                            use_container_width=True,
+                            key=f"gen_3d_{idx}"
+                        )
+                    else:
+                        st.pyplot(plot_comparison_3d(res.initial_state, selected_gen_state))
 
             with st.expander("Lihat Detail Paket pada Final State"):
                 pack_rows = []

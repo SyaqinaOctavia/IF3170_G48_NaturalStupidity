@@ -21,8 +21,10 @@ def selection(population):
     
     return [population[i] for i in selected_indices]
 
-def crossover(parent1, parent2, crossover_point): 
+def crossover(parent1, parent2, crossover_point=None): # Default crossover_point untuk one-point crossover otomatis
     #One-point crossover
+    if crossover_point is None:
+        crossover_point = random.randint(1, len(parent1.packs) - 1) if len(parent1.packs) > 1 else 0
     child1 = parent1.copy()
     child2 = parent2.copy()
     
@@ -44,7 +46,12 @@ def mutate(state: TruckState, mutation_rate: float = 0.20) -> TruckState:
 def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mutation_rate: float = 0.20, seed: int = 21) -> SearchResult:
     start_time = time.perf_counter()
     
-    pop = generate_population(base_truck, pop_size, seed=seed)
+    # Kosongkan salinan truk terlebih dahulu karena generate_population -> randomize_pack mengasumsikan truk kosong
+    empty_truck = base_truck.copy()
+    for p in empty_truck.packs:
+        p.isInside = False
+        p.pos.move(0, 0, 0)
+    pop = generate_population(empty_truck, pop_size, seed=seed)
     initial_state = pop[0].copy()
     
     history_max = []
@@ -84,10 +91,16 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
         next_gen = []
         
         idx = 0
+        attempts = 0
         while len(next_gen) < pop_size - elitism:
+            # Seleksi ulang jika indeks melewati batas selected_pop
+            if idx + 1 >= len(selected_pop):
+                selected_pop = selection(pop)
+                idx = 0
             p1 = selected_pop[idx]
             p2 = selected_pop[idx + 1]
             idx += 2
+            attempts += 1
             
             c1, c2 = crossover(p1, p2)
             for child in (c1, c2):
@@ -97,6 +110,11 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
                         next_gen.append(child)
                         if len(next_gen) >= pop_size - elitism:
                             break
+            # Fallback ke mutasi parent jika crossover berulang kali menghasilkan state tidak valid
+            if attempts > pop_size * 2 and len(next_gen) < pop_size - elitism:
+                fallback = mutate(p1.copy(), mutation_rate)
+                if fallback.validate_state():
+                    next_gen.append(fallback)
         
         # Next generation
         pop = elites + next_gen[:pop_size - elitism]
@@ -108,10 +126,13 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
     # Results metrics tambahan
     metrics = {
         'avg_fitness': history_avg,
+        'avg_obj_history': history_avg, # Key tambahan agar kompatibel dengan plot_metrics_2d di visualizer.py
         'best_fitness_per_gen': history_max,
         'best_state_per_gen': best_state_per_gen,
         'pop_size': pop_size,
         'iterations': iterations,
+        'max_iter': iterations, # Key tambahan agar kompatibel dengan tabel ringkasan di app.py
+        'mutation_rate': mutation_rate,
         'final_fitness': final_state.count_value(),
     }
     
