@@ -1,0 +1,102 @@
+{
+  "truck": {
+    "dim": {
+      "width": 6,
+      "height": 6,
+      "length": 6
+    },
+    "cap": 150
+  },
+  "packs": [
+    {
+      "id": 0,
+      "dim": {
+        "width": 3,
+        "height": 2,
+        "length": 3
+      },
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "value": 60,
+      "weight": 35,
+      "isFragile": false,
+      "eta": 1,
+      "isInside": true
+    },
+    {
+      "id": 1,
+      "dim": {
+        "width": 2,
+        "height": 2,
+        "length": 2
+      },
+      "pos": {
+        "x": 0,
+        "y": 2,
+        "z": 0
+      },
+      "value": 45,
+      "weight": 20,
+      "isFragile": true,
+      "eta": 2,
+      "isInside": true
+    },
+    {
+      "id": 2,
+      "dim": {
+        "width": 3,
+        "height": 3,
+        "length": 3
+      },
+      "pos": {
+        "x": 3,
+        "y": 0,
+        "z": 0
+      },
+      "value": 80,
+      "weight": 40,
+      "isFragile": false,
+      "eta": 3,
+      "isInside": true
+    },
+    {
+      "id": 3,
+      "dim": {
+        "width": 2,
+        "height": 2,
+        "length": 3
+      },
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "z": 3
+      },
+      "value": 50,
+      "weight": 25,
+      "isFragile": false,
+      "eta": 4,
+      "isInside": true
+    },
+    {
+      "id": 4,
+      "dim": {
+        "width": 2,
+        "height": 2,
+        "length": 2
+      },
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "value": 30,
+      "weight": 25,
+      "isFragile": false,
+      "eta": 5,
+      "isInside": false
+    }
+  ]
+}
