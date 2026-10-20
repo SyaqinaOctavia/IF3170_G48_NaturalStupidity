@@ -59,7 +59,7 @@ def mutate(state: TruckState, mutation_rate: float = 0.20) -> TruckState:
     return neighbor if neighbor else state
 
 
-def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mutation_rate: float = 0.20, seed: int = 21) -> SearchResult:
+def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mutation_rate: float, seed: int = 21) -> SearchResult:
     start_time = time.perf_counter()
     
     empty_truck = base_truck.copy()
@@ -68,13 +68,11 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
         p.pos.move(0, 0, 0)
 
     population = generate_population(empty_truck, pop_size, seed=seed)
-    initial_state = population[0].copy()
+    initial_state = max(population, key=lambda s: s.count_value()).copy()
     
     history_max = []
     history_avg = []
     best_state_per_gen = []
-    
-    best_overall = max(population, key=lambda s: s.count_value())
     
     for _ in range(iterations):
         # Evaluate
@@ -86,19 +84,14 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
         history_max.append(max_fit)
         history_avg.append(avg_fit)
         best_state_per_gen.append(gen_best.copy())
-        
-        if max_fit > best_overall.count_value():
-            best_overall = gen_best.copy()
-        
-        # Elitism untuk yang best value
+
+        # Elitism hanya jika pop_size ganjil
         if pop_size % 2 == 1:
-            # Ganjil: 1 elite (best_overall dari generasi sebelumnya)
             elitism = 1
-            elites = [best_overall.copy()]
+            elites = [population[-1].copy()] 
         else:
-            # Genap: 2 elite (best_overall + gen_best)
-            elitism = 2
-            elites = [best_overall.copy(), gen_best.copy()]
+            elitism = 0
+            elites = []
         
         # Selection
         selected_pop = selection(population)
@@ -127,14 +120,14 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
         
         # gabung dengan elit nya
         while len(next_gen) < pop_size - elitism:
-            next_gen.append(best_overall.copy())
+            next_gen.append(gen_best.copy())
 
         # Next generation
         population = elites + next_gen[:pop_size - elitism]
         assert len(population) == pop_size #pastiin jumlah sesuai
     
     duration = time.perf_counter() - start_time
-    final_state = best_overall
+    final_state = gen_best
     
     # Results metrics tambahan
     metrics = {
@@ -162,6 +155,6 @@ def run_ga(base_truck: TruckState, pop_size: int, iteration: int, n_runs: int = 
     seed_base = 21
     for i in range(n_runs):
         seed = seed_base + i
-        result = genetic_algorithm(base_truck, pop_size, iteration, 0.20, seed=seed)
+        result = genetic_algorithm(base_truck, pop_size, iteration, 0.2, seed=seed)
         results.append(result)
     return results
