@@ -39,7 +39,6 @@ def steepest_ascent(truck: TruckState) -> SearchResult:
         }
     )
 
-# ASUMSI truk kosong
 def stochastic(truck: TruckState, max_iter: int = 50) -> SearchResult:
     start_time = time.perf_counter()
     

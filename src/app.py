@@ -689,7 +689,8 @@ else:
                         key=f"gen_slider_{idx}"
                     ) if len(gen_states) > 1 else 1
                     selected_gen_state = gen_states[gen_idx - 1]
-                    if interactive:
+                    gen_interactive = st.toggle("Interaktif", value=False, key="gen_interactive")
+                    if gen_interactive:
                         st.plotly_chart(
                             plot_comparison_3d_interactive(res.initial_state, selected_gen_state),
                             use_container_width=True,
