@@ -149,12 +149,3 @@ def genetic_algorithm(base_truck: TruckState, pop_size: int, iterations: int, mu
         duration=duration,
         metrics=metrics
     )
-
-def run_ga(base_truck: TruckState, pop_size: int, iteration: int, n_runs: int = 3) -> List[SearchResult]:
-    results = []
-    seed_base = 21
-    for i in range(n_runs):
-        seed = seed_base + i
-        result = genetic_algorithm(base_truck, pop_size, iteration, 0.2, seed=seed)
-        results.append(result)
-    return results
