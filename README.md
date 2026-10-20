@@ -1,5 +1,7 @@
 # Tubes 3 Strategi Algoritma 2025/2026 — Local Search untuk Optimasi Pengemasan Truk
 
+![](https://media1.tenor.com/m/_R_vGKgWtsgAAAAC/heartsfrombri.gif)
+
 ## Identitas Pembuat
 | Nama | NIM |
 |------|-----|
