@@ -1,0 +1,48 @@
+{
+  "algorithm": "Genetic Algorithm",
+  "total_runs": 3,
+  "experiment_logs": [
+    {
+      "Run": "Pop=20, Iter=100",
+      "Objective Awal": 526,
+      "Objective Akhir (Best)": 125,
+      "Peningkatan (Delta)": -401,
+      "Paket Masuk (Awal -> Akhir)": "9 -> 3",
+      "Berat Akhir / Cap": "99 / 200",
+      "Durasi (detik)": 0.46,
+      "Total Iterasi": 100,
+      "Jumlah Populasi": 20,
+      "Banyak Iterasi": 100,
+      "Rata-rata Fitness Akhir": 68.85,
+      "Mutation Rate": 0.2
+    },
+    {
+      "Run": "Pop=50, Iter=100",
+      "Objective Awal": 526,
+      "Objective Akhir (Best)": 154,
+      "Peningkatan (Delta)": -372,
+      "Paket Masuk (Awal -> Akhir)": "9 -> 3",
+      "Berat Akhir / Cap": "59 / 200",
+      "Durasi (detik)": 0.965,
+      "Total Iterasi": 100,
+      "Jumlah Populasi": 50,
+      "Banyak Iterasi": 100,
+      "Rata-rata Fitness Akhir": 64.3,
+      "Mutation Rate": 0.2
+    },
+    {
+      "Run": "Pop=100, Iter=100",
+      "Objective Awal": 526,
+      "Objective Akhir (Best)": 435,
+      "Peningkatan (Delta)": -91,
+      "Paket Masuk (Awal -> Akhir)": "9 -> 6",
+      "Berat Akhir / Cap": "152 / 200",
+      "Durasi (detik)": 2.0252,
+      "Total Iterasi": 100,
+      "Jumlah Populasi": 100,
+      "Banyak Iterasi": 100,
+      "Rata-rata Fitness Akhir": 320.51,
+      "Mutation Rate": 0.2
+    }
+  ]
+}
