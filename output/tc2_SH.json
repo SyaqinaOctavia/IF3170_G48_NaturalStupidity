@@ -1,0 +1,16 @@
+{
+  "algorithm": "Stochastic Hill Climbing",
+  "total_runs": 1,
+  "experiment_logs": [
+    {
+      "Run": "Run #1",
+      "Objective Awal": 339,
+      "Objective Akhir (Best)": 529,
+      "Peningkatan (Delta)": 190,
+      "Paket Masuk (Awal -> Akhir)": "7 -> 9",
+      "Berat Akhir / Cap": "193 / 200",
+      "Durasi (detik)": 0.01,
+      "Total Iterasi": 112
+    }
+  ]
+}

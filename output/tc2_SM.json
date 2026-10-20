@@ -1,0 +1,17 @@
+{
+  "algorithm": "Hill Climbing with Sideways Move",
+  "total_runs": 1,
+  "experiment_logs": [
+    {
+      "Run": "Run #1",
+      "Objective Awal": 339,
+      "Objective Akhir (Best)": 549,
+      "Peningkatan (Delta)": 210,
+      "Paket Masuk (Awal -> Akhir)": "7 -> 9",
+      "Berat Akhir / Cap": "185 / 200",
+      "Durasi (detik)": 2.4343,
+      "Total Iterasi": 88,
+      "Jumlah Sideways Move": 78
+    }
+  ]
+}

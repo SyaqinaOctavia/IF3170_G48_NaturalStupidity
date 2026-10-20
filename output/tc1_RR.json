@@ -1,0 +1,18 @@
+{
+  "algorithm": "Random Restart Hill Climbing",
+  "total_runs": 1,
+  "experiment_logs": [
+    {
+      "Run": "Run #1",
+      "Objective Awal": 386,
+      "Objective Akhir (Best)": 811,
+      "Peningkatan (Delta)": 425,
+      "Paket Masuk (Awal -> Akhir)": "8 -> 12",
+      "Berat Akhir / Cap": "486 / 500",
+      "Durasi (detik)": 16.4137,
+      "Total Iterasi": 70,
+      "Banyak Restart": 10,
+      "Iterasi per Restart": "[7, 7, 7, 5, 5, 7, 7, 6, 8, 5, 7]"
+    }
+  ]
+}

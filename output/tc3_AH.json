@@ -1,0 +1,16 @@
+{
+  "algorithm": "Steepest Ascent Hill Climbing",
+  "total_runs": 1,
+  "experiment_logs": [
+    {
+      "Run": "Run #1",
+      "Objective Awal": 408,
+      "Objective Akhir (Best)": 587,
+      "Peningkatan (Delta)": 179,
+      "Paket Masuk (Awal -> Akhir)": "7 -> 8",
+      "Berat Akhir / Cap": "194 / 200",
+      "Durasi (detik)": 0.4025,
+      "Total Iterasi": 5
+    }
+  ]
+}
