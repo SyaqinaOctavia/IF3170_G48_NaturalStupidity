@@ -1,0 +1,18 @@
+{
+  "algorithm": "Simulated Annealing",
+  "total_runs": 1,
+  "experiment_logs": [
+    {
+      "Run": "Run #1",
+      "Objective Awal": 408,
+      "Objective Akhir (Best)": 564,
+      "Peningkatan (Delta)": 156,
+      "Paket Masuk (Awal -> Akhir)": "7 -> 8",
+      "Berat Akhir / Cap": "199 / 200",
+      "Durasi (detik)": 0.6063,
+      "Total Iterasi": 2435,
+      "Frekuensi Stuck Local Optima": 104,
+      "Nilai Akhir Current State": 544
+    }
+  ]
+}
