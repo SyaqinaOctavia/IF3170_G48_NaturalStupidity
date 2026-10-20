@@ -121,7 +121,7 @@ def load_truck_state_from_json(raw_json: str):
 
             orient = next((v for k, v in item.items() if str(k).lower() == "orientation"), None)
             if orient is not None:
-                src = {"x": pw, "y": pl, "z": ph}
+                src = {"x": pw, "y": ph, "z": pl}
                 o = {str(k).lower()[0]: v for k, v in orient.items()}
                 vals = {k: src[o[k].lower()] if isinstance(o[k], str) else int(o[k]) for k in "wlh"}
                 if sorted(vals.values()) != sorted((pw, ph, pl)):
