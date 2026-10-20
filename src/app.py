@@ -39,6 +39,11 @@ def truck_state_to_json(truck_state: TruckState) -> str:
                     "y": int(p.pos.y),
                     "z": int(p.pos.z)
                 },
+                "orientation":{
+                    "w":"x",
+                    "h":"y",
+                    "l":"z"
+                },
                 "value": int(p.value),
                 "weight": int(p.weight),
                 "isFragile": bool(p.isFragile),
@@ -114,6 +119,15 @@ def load_truck_state_from_json(raw_json: str):
             ph = int(p_dim["height"])
             pl = int(p_dim["length"])
 
+            orient = next((v for k, v in item.items() if str(k).lower() == "orientation"), None)
+            if orient is not None:
+                src = {"x": pw, "y": pl, "z": ph}
+                o = {str(k).lower()[0]: v for k, v in orient.items()}
+                vals = {k: src[o[k].lower()] if isinstance(o[k], str) else int(o[k]) for k in "wlh"}
+                if sorted(vals.values()) != sorted((pw, ph, pl)):
+                    return None, f"Orientation paket P{pid} bukan permutasi dari dimensinya."
+                pw, pl, ph = vals["w"], vals["l"], vals["h"]
+
             has_pos = "pos" in item or all(k in item for k in ("x", "y", "z"))
             p_pos = item.get("pos", item)
             px = int(p_pos.get("x", 0))
@@ -125,7 +139,7 @@ def load_truck_state_from_json(raw_json: str):
             pfrag = bool(item.get("isFragile", False))
             peta = int(item.get("eta", 1))
             pinside = bool(item.get("isInside", True if has_pos else False))
-        except (KeyError, TypeError, ValueError) as e:
+        except (KeyError, TypeError, ValueError, AttributeError) as e:
             return None, f"Atribut paket ke-{idx} tidak lengkap atau tidak valid: {e}"
 
         if pw <= 0 or ph <= 0 or pl <= 0 or pval <= 0 or pweight <= 0 or peta <= 0:
@@ -204,8 +218,7 @@ with st.sidebar:
         
     in_frag = st.toggle("Fragile", value=False, key="in_frag")
     if st.button("Input Pack", use_container_width=True, key="pack_in"):
-        manual_packs.append(
-            Package(
+        pack = Package(
                 ident=len(manual_packs), 
                 dim=Dimension(pack_w, pack_h, pack_l), 
                 value=field_val,
@@ -214,7 +227,10 @@ with st.sidebar:
                 isFragile=st.session_state.in_frag,
                 isInside=False,
                 pos=Position(0, 0, 0)
-        ))
+            )
+        manual_packs.append(pack)
+        st.session_state["base_state"].add_pack(pack)
+        st.session_state.pop("experiment_runs", None)
         st.rerun()
 
     if st.button("Acak pack yang sudah ditambahkan", use_container_width=True, key="manual_in"):
@@ -532,6 +548,20 @@ if "experiment_runs" not in st.session_state:
     else:
         fig = plot_comparison_3d(st.session_state["base_state"], st.session_state["base_state"])
         st.pyplot(fig)
+    with st.expander("Lihat Detail Paket pada Initial State"):
+        pack_rows = []
+        for p in st.session_state["base_state"].packs:
+            pack_rows.append({
+                "ID Paket": f"P{p.id}",
+                "Status": "Di Dalam Truk" if p.isInside else "Di Luar",
+                "Fragile": "Ya" if p.isFragile else "Tidak",
+                "Value": p.value,
+                "Weight": p.weight,
+                "Posisi (x, y, z)": f"({p.pos.x}, {p.pos.y}, {p.pos.z})" if p.isInside else "-",
+                "Dimensi (W x H x L)": f"{p.dim.width} x {p.dim.height} x {p.dim.length}",
+                "ETA": p.eta
+            })
+        st.dataframe(pd.DataFrame(pack_rows), use_container_width=True, hide_index=True)
 
 # TAMPILAN HASIL DAN PANEL LOG
 else:

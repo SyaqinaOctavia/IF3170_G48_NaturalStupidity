@@ -122,6 +122,12 @@ class TruckState:
                     pack.pos.y + pack.dim.height <= self.dim.height and
                     pack.pos.z < self.dim.length and 
                     pack.pos.z + pack.dim.length <= self.dim.length)
+    def add_pack(self, pack: Package) -> bool:
+        for ipack in self.packs:
+            if ipack.id == pack.id:
+                raise ValueError("2 packs with same ID")
+        self.packs.append(pack)
+        return self.validate_state()
     def validate_state(self):
         weight = 0
         inside = [p for p in self.packs if p.isInside]
